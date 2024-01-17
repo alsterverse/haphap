@@ -31,12 +31,13 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
         case "runContinuous":
             hapticManager.continuous()
         case "runRelease":
-            if let args = call.arguments as? Dictionary<String, Any>,
-               let power = args["power"] as? Double {
-                hapticManager.release(power: power)
-            } else {
-                result(FlutterError.init(code: "bad args", message: nil, details: nil))
-            }
+            break
+//            if let args = call.arguments as? Dictionary<String, Any>,
+//               let power = args["power"] as? Double {
+//                hapticManager.release(power: power)
+//            } else {
+//                result(FlutterError.init(code: "bad args", message: nil, details: nil))
+//            }
         case "runPattern":
             if let args = call.arguments as? Dictionary<String, Any>,
                let data = args["data"] as? String {
