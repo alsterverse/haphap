@@ -298,7 +298,7 @@ class HapticManager: NSObject {
 
             // Create a player from the continuous haptic pattern.
             rampUpPlayer = try engine.makeAdvancedPlayer(with: pattern)
-            rampUpPlayer.completionHandler = {  [weak self] _ in self?.continuous() }
+            //rampUpPlayer.completionHandler = {  [weak self] _ in self?.continuous() }
 
         } catch let error {
             print("Pattern Player Creation Error: \(error)")
