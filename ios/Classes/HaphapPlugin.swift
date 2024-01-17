@@ -274,8 +274,8 @@ class HapticManager: NSObject {
         events.append(contentsOf: createEscalatingTaps(0.0, parameters: maxParams))
 
 
-        let initialIntensity: Float = 1.0
-        let initialSharpness: Float = 0.25
+        let initialIntensity: Float = 0.5
+        let initialSharpness: Float = 0.0
         // Create an intensity parameter:
         let intensity = CHHapticEventParameter(parameterID: .hapticIntensity,
                                                value: initialIntensity)
@@ -296,7 +296,7 @@ class HapticManager: NSObject {
         do {
             // Create a pattern from the continuous haptic event.
             let pattern = try CHHapticPattern(events: events, parameters: [])
-            let curves = [CHHapticParameterCurve(parameterID: .hapticIntensityControl, controlPoints: [.init(relativeTime: 0.0, value: 0.0), .init(relativeTime: rampDur, value: 1.0)], relativeTime: 0)]
+            let curves = [CHHapticParameterCurve(parameterID: .hapticIntensityControl, controlPoints: [.init(relativeTime: 0.0, value: 0.2), .init(relativeTime: rampDur, value: 1.0)], relativeTime: 0)]
             let patt2 = try CHHapticPattern(events: events, parameterCurves: curves)
 
             // Create a player from the continuous haptic pattern.
