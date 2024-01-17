@@ -147,31 +147,34 @@ class HapticManager: NSObject {
     }
 
     func rampUp() {
+        print("[haphap] try run ramp up")
         guard !engineNeedsStart else { return }
 
         do {
 
-            try stopAllPlayers()
+            //try stopAllPlayers()
+            try rampUpPlayer.seek(toOffset: 0.0)
             try rampUpPlayer.start(atTime: CHHapticTimeImmediate)
         } catch {
-            print("[haphap] Failed to ramp up: \(error)")
+            print("[haphap] Failed to \(#function): \(error)")
         }
     }
 
     func continuous() {
+        print("[haphap] try run contin")
         guard !engineNeedsStart else { return }
         do {
-            try stopAllPlayers()
+            //try stopAllPlayers()
             try continuousPlayer.start(atTime: CHHapticTimeImmediate)
         } catch {
-            print("[haphap] Failed to ramp up: \(error)")
+            print("[haphap] Failed to \(#function): \(error)")
         }
     }
 
     func release(power: Double) {
+        print("[haphap] try run release at \(power)")
         guard !engineNeedsStart else { return }
         do {
-            print("release \(power)")
             try stopAllPlayers()
 
 //            let intensityParameter = CHHapticDynamicParameter(parameterID: .hapticIntensityControl,
@@ -188,7 +191,7 @@ class HapticManager: NSObject {
             try releasePlayer.seek(toOffset: ba)
             try releasePlayer.start(atTime: CHHapticTimeImmediate)
         } catch {
-            print("[haphap] Failed to ramp up: \(error)")
+            print("[haphap] Failed to \(#function): \(error)")
         }
     }
 
