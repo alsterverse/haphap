@@ -268,7 +268,7 @@ class HapticManager: NSObject {
 //        events.append(contentsOf: createSection(4.4, parameters: rhythmParams))
 //        events.append(CHHapticEvent(eventType: .hapticContinuous, parameters: kickParams, relativeTime: 8.8, duration: 0.3))
 
-        events.append(contentsOf: createEscalatingTaps(0.0, parameters: maxParams))
+        //events.append(contentsOf: createEscalatingTaps(0.0, parameters: maxParams))
 
 
         let initialIntensity: Float = 1.0
@@ -280,7 +280,7 @@ class HapticManager: NSObject {
         // Create a sharpness parameter:
         let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness,
                                                value: initialSharpness)
-        let rampDur: TimeInterval = 2.0
+        let rampDur: TimeInterval = 4.0
         // Create a continuous event with a long duration from the parameters.
         let continuousEvent = CHHapticEvent(eventType: .hapticContinuous,
                                             parameters: [intensity, sharpness],
@@ -288,16 +288,16 @@ class HapticManager: NSObject {
                                             duration: rampDur)
 
 
-        //events.append(continuousEvent)
+        events.append(continuousEvent)
 
         do {
             // Create a pattern from the continuous haptic event.
             let pattern = try CHHapticPattern(events: events, parameters: [])
-            let curves = [CHHapticParameterCurve(parameterID: .hapticIntensityControl, controlPoints: [.init(relativeTime: 0.0, value: 0.25), .init(relativeTime: rampDur, value: 0.75)], relativeTime: 0)]
+            let curves = [CHHapticParameterCurve(parameterID: .hapticIntensityControl, controlPoints: [.init(relativeTime: 0.0, value: 0.25), .init(relativeTime: rampDur, value: 1.0)], relativeTime: 0)]
             let patt2 = try CHHapticPattern(events: events, parameterCurves: curves)
 
             // Create a player from the continuous haptic pattern.
-            rampUpPlayer = try engine.makeAdvancedPlayer(with: pattern)
+            rampUpPlayer = try engine.makeAdvancedPlayer(with: patt2)
             //rampUpPlayer.completionHandler = {  [weak self] _ in self?.continuous() }
 
         } catch let error {
