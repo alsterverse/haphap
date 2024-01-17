@@ -26,13 +26,10 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
             result("iOS " + UIDevice.current.systemVersion)
         case "prepare":
             hapticManager.resetAndStart()
-            break
         case "runRampUp":
             hapticManager.rampUp()
-            break
         case "runContinuous":
             hapticManager.continuous()
-            break
         case "runRelease":
             if let args = call.arguments as? Dictionary<String, Any>,
                let power = args["power"] as? Double {
@@ -40,7 +37,6 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
             } else {
                 result(FlutterError.init(code: "bad args", message: nil, details: nil))
             }
-            break
         case "runPattern":
             if let args = call.arguments as? Dictionary<String, Any>,
                let data = args["data"] as? String {
@@ -156,7 +152,7 @@ class HapticManager: NSObject {
 
         do {
 
-            //try stopAllPlayers()
+            try stopAllPlayers()
             try rampUpPlayer.seek(toOffset: 0.0)
             try rampUpPlayer.start(atTime: CHHapticTimeImmediate)
         } catch {
@@ -275,7 +271,7 @@ class HapticManager: NSObject {
 //        events.append(contentsOf: createSection(4.4, parameters: rhythmParams))
 //        events.append(CHHapticEvent(eventType: .hapticContinuous, parameters: kickParams, relativeTime: 8.8, duration: 0.3))
 
-        //events.append(contentsOf: createEscalatingTaps(0.0, parameters: maxParams))
+        events.append(contentsOf: createEscalatingTaps(0.0, parameters: maxParams))
 
 
         let initialIntensity: Float = 1.0
@@ -300,12 +296,12 @@ class HapticManager: NSObject {
         do {
             // Create a pattern from the continuous haptic event.
             let pattern = try CHHapticPattern(events: events, parameters: [])
-            let curves = [CHHapticParameterCurve(parameterID: .hapticIntensityControl, controlPoints: [.init(relativeTime: 0.0, value: 0.25), .init(relativeTime: rampDur, value: 1.0)], relativeTime: 0)]
+            let curves = [CHHapticParameterCurve(parameterID: .hapticIntensityControl, controlPoints: [.init(relativeTime: 0.0, value: 0.0), .init(relativeTime: rampDur, value: 1.0)], relativeTime: 0)]
             let patt2 = try CHHapticPattern(events: events, parameterCurves: curves)
 
             // Create a player from the continuous haptic pattern.
             rampUpPlayer = try engine.makeAdvancedPlayer(with: patt2)
-            //rampUpPlayer.completionHandler = {  [weak self] _ in self?.continuous() }
+            rampUpPlayer.completionHandler = {  [weak self] _ in self?.continuous() }
 
         } catch let error {
             print("Pattern Player Creation Error: \(error)")
