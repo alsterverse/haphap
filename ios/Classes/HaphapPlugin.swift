@@ -206,8 +206,8 @@ class HapticManager: NSObject {
             let normalizedPct: Double = Double(index) / Double(resolution)
             let floatedX = Float(normalizedPct)
             uForce += (target - uForce) * frameDelta
-            let x: Float = floatedX * floatedX * 5.0 + Float(uForce * Double.pi * 6.0)
-            let y: Float = (sin(x) * 0.4 + 0.6) * (1.5 - floatedX)
+            let x: Float = 0.5 * 5.0 + Float(uForce * Double.pi * 2 * 4.0)
+            let y: Float = (sin(x) * 0.4 + 0.6) * (1.0 - floatedX)
             print("power \(y) \t \(uForce) \t \( 1.0 - floatedX)")
 //
 //            // Invertera "avståndet" så den börjar snabbt och avtar
@@ -288,7 +288,7 @@ class HapticManager: NSObject {
                                             duration: rampDur)
 
 
-        events.append(continuousEvent)
+        //events.append(continuousEvent)
 
         do {
             // Create a pattern from the continuous haptic event.
@@ -297,7 +297,7 @@ class HapticManager: NSObject {
             let patt2 = try CHHapticPattern(events: events, parameterCurves: curves)
 
             // Create a player from the continuous haptic pattern.
-            rampUpPlayer = try engine.makeAdvancedPlayer(with: patt2)
+            rampUpPlayer = try engine.makeAdvancedPlayer(with: pattern)
             rampUpPlayer.completionHandler = {  [weak self] _ in self?.continuous() }
 
         } catch let error {
