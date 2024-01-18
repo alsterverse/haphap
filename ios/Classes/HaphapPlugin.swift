@@ -225,6 +225,11 @@ class HapticManager: NSObject {
         CHHapticEventParameter(parameterID: .hapticSharpness, value: 0.5)
     ]
 
+    let sharpParameters = [
+        CHHapticEventParameter(parameterID: .hapticIntensity, value: 1.0),
+        CHHapticEventParameter(parameterID: .hapticSharpness, value: 1.0)
+    ]
+
     /// - Tag: CreateContinuousPattern
     func createRampUpHapticPlayer() {
         var events = [CHHapticEvent]()
@@ -271,26 +276,17 @@ class HapticManager: NSObject {
 
     /// - Tag: CreateContinuousPattern
     func createReleaseHapticPlayer() {
-        let initialIntensity: Float = 1.0
-        let initialSharpness: Float = 0.5
-        // Create an intensity parameter:
-        let intensity = CHHapticEventParameter(parameterID: .hapticIntensity,
-                                               value: initialIntensity)
+        let sharpHit = CHHapticEvent(eventType: .hapticTransient, parameters: sharpParameters, relativeTime: 0.0)
 
-        // Create a sharpness parameter:
-        let sharpness = CHHapticEventParameter(parameterID: .hapticSharpness,
-                                               value: initialSharpness)
-
-        // Create a continuous event with a long duration from the parameters.
         let continuousEvent = CHHapticEvent(eventType: .hapticContinuous,
-                                            parameters: [intensity, sharpness],
+                                            parameters: maxParameters,
                                             relativeTime: 0,
                                             duration: releaseDuration)
 
         do {
             let sineCurve = CHHapticParameterCurve.init(parameterID: .hapticIntensityControl, controlPoints: createSineCurveControlPoints(duration: releaseDuration), relativeTime: 0.0)
 
-            let pattern = try CHHapticPattern(events: [continuousEvent], parameterCurves: [sineCurve])
+            let pattern = try CHHapticPattern(events: [sharpHit, continuousEvent], parameterCurves: [sineCurve])
 
             // Create a player from the continuous haptic pattern.
             releasePlayer = try engine.makeAdvancedPlayer(with: pattern)
