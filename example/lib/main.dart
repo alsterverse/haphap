@@ -73,12 +73,6 @@ class _MyAppState extends State<MyApp> {
             ),
             TextButton(
               onPressed: () async {
-                _haphapPlugin.runContinuous();
-              },
-              child: const Text('Hold'),
-            ),
-            TextButton(
-              onPressed: () async {
                 _haphapPlugin.runRelease(0.25);
               },
               child: const Text('Release 0.25'),
