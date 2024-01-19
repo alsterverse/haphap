@@ -8,8 +8,9 @@ class Haphap {
   // Future<void> idle() {
   // }
 
-  // Future<void> stop() {
-  // }
+  Future<void> stop() {
+    return HaphapPlatform.instance.stop();
+  }
 
   // Future<bool> getIsPrepared() {}
 

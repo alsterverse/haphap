@@ -26,15 +26,22 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
             result("iOS " + UIDevice.current.systemVersion)
         case "prepare":
             hapticManager.resetAndStart()
+            break
         case "stop":
             try? hapticManager.stopAllPlayers()
+            break
         case "goToIdle":
             hapticManager.goToIdle()
+            break
+        case "runContinuous":
+            hapticManager.goToIdle()
+            break
         case "runRampUp":
             if (hapticManager.engineNeedsStart) {
                 hapticManager.resetAndStart()
             }
             hapticManager.rampUp()
+            break
         case "runRelease":
             if let args = call.arguments as? Dictionary<String, Any>,
                let power = args["power"] as? Double {
@@ -45,6 +52,7 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
             } else {
                 result(FlutterError.init(code: "bad args", message: nil, details: nil))
             }
+            break
         case "runPattern":
             if let args = call.arguments as? Dictionary<String, Any>,
                let data = args["data"] as? String {
@@ -57,6 +65,7 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
             } else {
                 result(FlutterError.init(code: "bad args", message: nil, details: nil))
             }
+            break
         default:
             result(FlutterMethodNotImplemented)
         }
@@ -133,6 +142,7 @@ class HapticManager: NSObject {
     }
 
     func goToIdle() {
+        try? stopAllPlayers()
         engineNeedsStart = true
         engine.stop()
     }
@@ -165,9 +175,17 @@ class HapticManager: NSObject {
 
         do {
             try stopAllPlayers()
-            try rampUpPlayer.start(atTime: CHHapticTimeImmediate)
+            rampUpPlayer.isMuted = false
+            releasePlayer.isMuted = true
+            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now().advanced(by: DispatchTimeInterval.milliseconds(50)), execute: { [weak self] in
+                do {
+                    try self?.rampUpPlayer.start(atTime: CHHapticTimeImmediate)
+                } catch {
+                    print("[haphap] Failed to start \(#function): \(error)")
+                }
+            })
         } catch {
-            print("[haphap] Failed to \(#function): \(error)")
+            print("[haphap] Failed to stop \(#function): \(error)")
         }
     }
 
@@ -176,10 +194,24 @@ class HapticManager: NSObject {
         guard !engineNeedsStart else { return }
         do {
             try stopAllPlayers()
+            rampUpPlayer.isMuted = true
+            releasePlayer.isMuted = false
 
-            let offset = min(0.0, 1.0 - power) * releaseDuration
-            try releasePlayer.seek(toOffset: offset)
-            try releasePlayer.start(atTime: CHHapticTimeImmediate)
+//            engine.notifyWhenPlayersFinished { error in
+//                print("Stopping the haptic engine.")
+//                return .stopEngine
+//            }
+
+            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now().advanced(by: DispatchTimeInterval.milliseconds(50)), execute: { [weak self] in
+                do {
+                    let offset = (1.0 - power) * (self?.releaseDuration ?? 0.0)
+                    try self?.releasePlayer.seek(toOffset: offset)
+                    try self?.releasePlayer.start(atTime: CHHapticTimeImmediate)
+                } catch {
+                    print("[haphap] Failed to start \(#function): \(error)")
+                }
+            })
+
         } catch {
             print("[haphap] Failed to \(#function): \(error)")
         }
@@ -213,7 +245,7 @@ class HapticManager: NSObject {
         var accumulatedDelay = 0.0
         (0...eventsCount - 1).enumerated().forEach { index, _ in
             let relativeTime = startTime + durationPerEvent * Double(index) + accumulatedDelay
-            let delay: Double = 0.07 * (1 - (Double(index) / Double(eventsCount))) + 0.01
+            let delay: Double = 0.07 * (1 - (Double(index) / Double(eventsCount))) + 0.02
             accumulatedDelay += delay
             events.append(CHHapticEvent(eventType: .hapticTransient, parameters: parameters, relativeTime: relativeTime, duration: durationPerEvent))
         }

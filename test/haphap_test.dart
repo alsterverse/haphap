@@ -39,6 +39,12 @@ class MockHaphapPlatform
     // TODO: implement runPattern
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> stop() {
+    // TODO: implement stop
+    throw UnimplementedError();
+  }
 }
 
 void main() {

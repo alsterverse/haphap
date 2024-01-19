@@ -79,6 +79,12 @@ class _MyAppState extends State<MyApp> {
             ),
             TextButton(
               onPressed: () async {
+                _haphapPlugin.runContinuous();
+              },
+              child: const Text('Run continuous'),
+            ),
+            TextButton(
+              onPressed: () async {
                 _haphapPlugin.runRelease(0.5);
               },
               child: const Text('Release 0.5'),
@@ -94,6 +100,12 @@ class _MyAppState extends State<MyApp> {
                 _haphapPlugin.runRelease(1.0);
               },
               child: const Text('Release 1.0'),
+            ),
+            TextButton(
+              onPressed: () async {
+                _haphapPlugin.stop();
+              },
+              child: const Text('Stop'),
             ),
           ],
         ),
