@@ -58,7 +58,7 @@ class HaphapPlugin: FlutterPlugin, MethodCallHandler {
           var invertedPercent: Double = 1.0 - percentOfRamp
           var delay: Long = (70.0 * invertedPercent + 25.0).toLong()
           if (index % 2 == 0) {
-            amps += (percentOfRamp * 255).toInt() 
+            amps += (percentOfRamp * 128).toInt() //255 is max
           } else {
             amps += 0
           }
@@ -95,7 +95,7 @@ class HaphapPlugin: FlutterPlugin, MethodCallHandler {
           var x = 0.0 + currentValue * PI * 2 * 4.0
           var sine = (sin(x) * 0.4 + 0.6) * (1.0 - percentOfRamp)
           var delay: Long = timeStep// (70.0 * invertedPercent + 25.0).toLong()
-          amps += (sine * 255).toInt() 
+          amps += (sine * 255).toInt()
           
           delays += delay
         }
@@ -105,8 +105,8 @@ class HaphapPlugin: FlutterPlugin, MethodCallHandler {
         val newAmps = amps.drop(indexToCut).toIntArray()
         val newDelays = delays.drop(indexToCut).toLongArray()
 
-        val timings: LongArray = longArrayOf(50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50)
-        val amplitudes: IntArray = intArrayOf(255, 51, 220, 80, 170, 255, 0, 38, 62, 100, 70, 38)
+        //val timings: LongArray = longArrayOf(50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50)
+        //val amplitudes: IntArray = intArrayOf(255, 51, 220, 80, 170, 255, 0, 38, 62, 100, 70, 38)
         val repeatIndex = -1 // Do not repeat.
 
         vibrator.vibrate(VibrationEffect.createWaveform(newDelays, newAmps, repeatIndex))
