@@ -33,9 +33,6 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
         case "goToIdle":
             hapticManager.goToIdle()
             break
-        case "runContinuous":
-            hapticManager.goToIdle()
-            break
         case "runRampUp":
             if (hapticManager.engineNeedsStart) {
                 hapticManager.resetAndStart()
@@ -84,6 +81,7 @@ class HapticManager: NSObject {
     private var backgroundToken: NSObjectProtocol?
 
     var engineNeedsStart = true
+    var manuallyPrepared = false
 
     // Maintain a variable to check for Core Haptics compatibility on device.
     lazy var supportsHaptics: Bool = {
@@ -97,6 +95,8 @@ class HapticManager: NSObject {
 
     /// - Tag: CreateEngine
     func createEngine() {
+        guard (engineNeedsStart) else { return }
+
         // Create and configure a haptic engine.
         do {
             // Associate the haptic engine with the default audio session
@@ -141,9 +141,15 @@ class HapticManager: NSObject {
         engine.resetHandler = resetAndStart
     }
 
+    func prepare() {
+        manuallyPrepared = true
+        resetAndStart()
+    }
+
     func goToIdle() {
         try? stopAllPlayers()
         engineNeedsStart = true
+        manuallyPrepared = false
         engine.stop()
     }
 
@@ -171,7 +177,7 @@ class HapticManager: NSObject {
 
     func rampUp() {
         print("[haphap] try run ramp up")
-        guard !engineNeedsStart else { return }
+        if engineNeedsStart { prepare() }
 
         do {
             try stopAllPlayers()
@@ -191,7 +197,7 @@ class HapticManager: NSObject {
 
     func release(power: Double) {
         print("[haphap] try run release at \(power)")
-        guard !engineNeedsStart else { return }
+        if engineNeedsStart { prepare() }
         do {
             try stopAllPlayers()
             rampUpPlayer.isMuted = true
@@ -228,9 +234,10 @@ class HapticManager: NSObject {
         (0...pointCount - 1).enumerated().forEach { index, _ in
             let percent: Double = Double(index) / Double(pointCount)
             currentValue += (targetValue - currentValue) * delta
-            let x: Float = 2.5 + Float(currentValue * Double.pi * 2 * 4.0)
+            // 1.25 is dist*dist*5.0 from ripples.frag. Choosing 0.5 as the distance is the middle of the screen. So the sine is following the point where the user is probably looking
+            let x: Float = 0.0 + Float(currentValue * Double.pi * 2 * 4.0)
             let y: Float = (sin(x) * 0.4 + 0.6) * (1.0 - Float(percent))
-            //print("sineCurve \(y) \t \(currentValue) \t \( 1.0 - Float(percent))")
+            print("sineCurve \(y) \t \(currentValue) \t \( 1.0 - Float(percent))")
             controlpoints.append(.init(relativeTime: percent * duration, value: y))
         }
 
@@ -369,7 +376,7 @@ class HapticManager: NSObject {
                                                                  object: nil,
                                                                  queue: nil)
         { _ in
-            guard self.supportsHaptics else {
+            guard self.supportsHaptics && self.manuallyPrepared else {
                 return
             }
             // Restart the haptic engine.

@@ -31,6 +31,10 @@ abstract class HaphapPlatform extends PlatformInterface {
     throw UnimplementedError('prepare() has not been implemented.');
   }
 
+  Future<void> goToIdle() {
+    throw UnimplementedError('prepare() has not been implemented.');
+  }
+
   Future<void> prepare() {
     throw UnimplementedError('prepare() has not been implemented.');
   }

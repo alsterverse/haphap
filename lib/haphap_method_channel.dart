@@ -29,6 +29,11 @@ class MethodChannelHaphap extends HaphapPlatform {
   }
 
   @override
+  Future<void> goToIdle() async {
+    await methodChannel.invokeMethod<void>('goToIdle');
+  }
+
+  @override
   Future<void> prepare() async {
     await methodChannel.invokeMethod<void>('prepare');
   }

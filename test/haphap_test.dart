@@ -45,6 +45,12 @@ class MockHaphapPlatform
     // TODO: implement stop
     throw UnimplementedError();
   }
+
+  @override
+  Future<void> goToIdle() {
+    // TODO: implement goToIdle
+    throw UnimplementedError();
+  }
 }
 
 void main() {

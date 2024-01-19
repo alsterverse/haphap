@@ -61,9 +61,15 @@ class _MyAppState extends State<MyApp> {
             ),
             TextButton(
               onPressed: () async {
-                _haphapPlugin.prepare();
+                _haphapPlugin.prepareHaptics();
               },
-              child: const Text('Prepare'),
+              child: const Text('Prepare haptics'),
+            ),
+            TextButton(
+              onPressed: () async {
+                _haphapPlugin.idleHaptics();
+              },
+              child: const Text('Idle haptics'),
             ),
             TextButton(
               onPressed: () async {
@@ -76,12 +82,6 @@ class _MyAppState extends State<MyApp> {
                 _haphapPlugin.runRelease(0.25);
               },
               child: const Text('Release 0.25'),
-            ),
-            TextButton(
-              onPressed: () async {
-                _haphapPlugin.runContinuous();
-              },
-              child: const Text('Run continuous'),
             ),
             TextButton(
               onPressed: () async {

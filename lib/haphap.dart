@@ -5,17 +5,16 @@ class Haphap {
     return HaphapPlatform.instance.getPlatformVersion();
   }
 
-  // Future<void> idle() {
-  // }
+  Future<void> idleHaptics() {
+    return HaphapPlatform.instance.goToIdle();
+  }
+
+  Future<void> prepareHaptics() {
+    return HaphapPlatform.instance.prepare();
+  }
 
   Future<void> stop() {
     return HaphapPlatform.instance.stop();
-  }
-
-  // Future<bool> getIsPrepared() {}
-
-  Future<void> prepare() {
-    return HaphapPlatform.instance.prepare();
   }
 
   Future<void> runRampUp() {
