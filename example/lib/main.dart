@@ -30,21 +30,21 @@ class _MyAppState extends State<MyApp> {
     String platformVersion;
     // Platform messages may fail, so we use a try/catch PlatformException.
     // We also handle the message potentially returning null.
-    try {
-      platformVersion = await _haphapPlugin.getPlatformVersion() ??
-          'Unknown platform version';
-    } on PlatformException {
-      platformVersion = 'Failed to get platform version.';
-    }
+    // try {
+    //   platformVersion = await _haphapPlugin.getPlatformVersion() ??
+    //       'Unknown platform version';
+    // } on PlatformException {
+    //   platformVersion = 'Failed to get platform version.';
+    // }
 
-    // If the widget was removed from the tree while the asynchronous platform
-    // message was in flight, we want to discard the reply rather than calling
-    // setState to update our non-existent appearance.
-    if (!mounted) return;
+    // // If the widget was removed from the tree while the asynchronous platform
+    // // message was in flight, we want to discard the reply rather than calling
+    // // setState to update our non-existent appearance.
+    // if (!mounted) return;
 
-    setState(() {
-      _platformVersion = platformVersion;
-    });
+    // setState(() {
+    //   _platformVersion = platformVersion;
+    // });
   }
 
   @override
@@ -52,7 +52,7 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(
-          title: const Text('Plugin example app'),
+          title: const Text('Haphap example'),
         ),
         body: ListView(
           children: [
@@ -73,31 +73,31 @@ class _MyAppState extends State<MyApp> {
             ),
             TextButton(
               onPressed: () async {
-                _haphapPlugin.runRampUp();
+                _haphapPlugin.playEscalatingHapticPattern();
               },
               child: const Text('Ramp'),
             ),
             TextButton(
               onPressed: () async {
-                _haphapPlugin.runRelease(0.25);
+                _haphapPlugin.playDynamicWaveHapticPattern(0.25);
               },
               child: const Text('Release 0.25'),
             ),
             TextButton(
               onPressed: () async {
-                _haphapPlugin.runRelease(0.5);
+                _haphapPlugin.playDynamicWaveHapticPattern(0.5);
               },
               child: const Text('Release 0.5'),
             ),
             TextButton(
               onPressed: () async {
-                _haphapPlugin.runRelease(0.75);
+                _haphapPlugin.playDynamicWaveHapticPattern(0.75);
               },
               child: const Text('Release 0.75'),
             ),
             TextButton(
               onPressed: () async {
-                _haphapPlugin.runRelease(1.0);
+                _haphapPlugin.playDynamicWaveHapticPattern(1.0);
               },
               child: const Text('Release 1.0'),
             ),

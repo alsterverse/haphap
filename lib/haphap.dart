@@ -17,20 +17,22 @@ class Haphap {
     return HaphapPlatform.instance.stop();
   }
 
-  Future<void> runRampUp() {
+  Future<void> playEscalatingHapticPattern() {
     return HaphapPlatform.instance.runRampUp();
   }
 
-  Future<void> runContinuous() {
-    return HaphapPlatform.instance.runContinuous();
-  }
+  // Future<void> runContinuous() {
+  //   return HaphapPlatform.instance.runContinuous();
+  // }
 
-  Future<void> runRelease(double power) {
+  /// Power [0-1] determines the playback point of the haptic pattern.
+  /// More power equals more and longer vibrations.
+  Future<void> playDynamicWaveHapticPattern(double power) {
     return HaphapPlatform.instance.runRelease(power);
   }
 
-  Future<void> runPattern(String data) {
-    //print('runPattern $data');
-    return HaphapPlatform.instance.runPattern(data);
-  }
+  // Future<void> runPattern(String data) {
+  //   //print('runPattern $data');
+  //   return HaphapPlatform.instance.runPattern(data);
+  // }
 }

@@ -22,7 +22,7 @@ class HaphapPlugin: FlutterPlugin, MethodCallHandler {
   /// when the Flutter Engine is detached from the Activity
   private lateinit var channel : MethodChannel
   private lateinit var vibrator: Vibrator
-  //private var 
+  //private lateinit var sineAmps: IntArray
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "haphap")

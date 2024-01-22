@@ -203,11 +203,6 @@ class HapticManager: NSObject {
             rampUpPlayer.isMuted = true
             releasePlayer.isMuted = false
 
-//            engine.notifyWhenPlayersFinished { error in
-//                print("Stopping the haptic engine.")
-//                return .stopEngine
-//            }
-
             DispatchQueue.main.asyncAfter(deadline: DispatchTime.now().advanced(by: DispatchTimeInterval.milliseconds(50)), execute: { [weak self] in
                 do {
                     let offset = (1.0 - power) * (self?.releaseDuration ?? 0.0)
@@ -237,7 +232,7 @@ class HapticManager: NSObject {
             // 1.25 is dist*dist*5.0 from ripples.frag. Choosing 0.5 as the distance is the middle of the screen. So the sine is following the point where the user is probably looking
             let x: Float = 0.0 + Float(currentValue * Double.pi * 2 * 4.0)
             let y: Float = (sin(x) * 0.4 + 0.6) * (1.0 - Float(percent))
-            print("sineCurve \(y) \t \(currentValue) \t \( 1.0 - Float(percent))")
+            //print("sineCurve \(y) \t \(currentValue) \t \( 1.0 - Float(percent))")
             controlpoints.append(.init(relativeTime: percent * duration, value: y))
         }
 
@@ -252,7 +247,7 @@ class HapticManager: NSObject {
         var accumulatedDelay = 0.0
         (0...eventsCount - 1).enumerated().forEach { index, _ in
             let relativeTime = startTime + durationPerEvent * Double(index) + accumulatedDelay
-            let delay: Double = 0.07 * (1 - (Double(index) / Double(eventsCount))) + 0.02
+            let delay: Double = 0.07 * (1 - (Double(index) / Double(eventsCount))) + 0.05
             accumulatedDelay += delay
             events.append(CHHapticEvent(eventType: .hapticTransient, parameters: parameters, relativeTime: relativeTime, duration: durationPerEvent))
         }
