@@ -22,7 +22,12 @@ class HaphapPlugin: FlutterPlugin, MethodCallHandler {
   /// when the Flutter Engine is detached from the Activity
   private lateinit var channel : MethodChannel
   private lateinit var vibrator: Vibrator
-  //private lateinit var sineAmps: IntArray
+  private lateinit var sineAmps: IntArray
+  private lateinit var sineDelays: LongArray
+  private lateinit var escalatingAmps: IntArray
+  private lateinit var escalatingDelays: LongArray
+  private val sineDurationInMilliSeconds = 3000
+  private val timeStepInMilliSeconds = 50
 
   override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "haphap")
@@ -31,6 +36,55 @@ class HaphapPlugin: FlutterPlugin, MethodCallHandler {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
       vibrator = flutterPluginBinding.applicationContext.getSystemService(Vibrator::class.java)
     }
+
+    val (sineAmps, sineDelays) = generateSineAmpsAndDelays()
+    this.sineAmps = sineAmps
+    this.sineDelays = sineDelays
+
+    val (escalatingAmps, escalatingDelays) = generateEscalatingAmpsAndDelays()
+    this.escalatingAmps = escalatingAmps
+    this.escalatingDelays = escalatingDelays
+  }
+
+  private fun generateSineAmpsAndDelays(): Pair<IntArray, LongArray> {
+    val delta: Double = 1.0 / timeStepInMilliSeconds.toDouble()
+    val fullCount: Int = (sineDurationInMilliSeconds / timeStepInMilliSeconds)
+    var amps = intArrayOf()
+    var delays = longArrayOf()
+    var currentValue: Double = 1.0
+    val targetValue: Double = 0.0
+    for (index in 0..fullCount) {
+      var percentOfRamp: Double = min(1.0,index.toDouble() / fullCount.toDouble())
+      var invertedPercent: Double = 1.0 - percentOfRamp
+      currentValue += (targetValue - currentValue) * delta
+      var x = 0.0 + currentValue * PI * 2 * 4.0
+      var sine = (sin(x) * 0.4 + 0.6) * (1.0 - percentOfRamp)
+      var delay: Long = timeStepInMilliSeconds.toLong()// (70.0 * invertedPercent + 25.0).toLong()
+      amps += (sine * 255).toInt()
+
+      delays += delay
+    }
+    return Pair(amps, delays)
+  }
+
+  private fun generateEscalatingAmpsAndDelays(): Pair<IntArray, LongArray> {
+    val rampCount = 60
+    val fullCount = 600
+    var amps = intArrayOf()
+    var delays = longArrayOf()
+    for (index in 0..fullCount) {
+      val percentOfRamp: Double = min(1.0,index.toDouble() / rampCount.toDouble())
+      val invertedPercent: Double = 1.0 - percentOfRamp
+      val delay: Long = (70.0 * invertedPercent + 25.0).toLong()
+      amps += if (index % 2 == 0) {
+        (percentOfRamp * 100 + 28).toInt() //255 is max
+      } else {
+        0
+      }
+
+      delays += delay
+    }
+    return Pair(amps, delays)
   }
 
   override fun onMethodCall(call: MethodCall, result: Result) {
@@ -49,28 +103,8 @@ class HaphapPlugin: FlutterPlugin, MethodCallHandler {
         vibrator.cancel()
       }
       "runRampUp" -> {
-        var rampCount = 60
-        var fullCount = 600
-        var amps = intArrayOf()
-        var delays = longArrayOf()
-        for (index in 0..fullCount) {
-          var percentOfRamp: Double = min(1.0,index.toDouble() / rampCount.toDouble())
-          var invertedPercent: Double = 1.0 - percentOfRamp
-          var delay: Long = (70.0 * invertedPercent + 25.0).toLong()
-          if (index % 2 == 0) {
-            amps += (percentOfRamp * 128).toInt() //255 is max
-          } else {
-            amps += 0
-          }
-          
-          delays += delay
-        }
-
-        //val timings: LongArray = longArrayOf(50, 50, 50, 50, 50, 100, 350, 25, 25, 25, 25, 200)
-        //val amplitudes: IntArray = intArrayOf(33, 51, 75, 113, 170, 255, 0, 38, 62, 100, 160, 255)
         val repeatIndex = -1 // Do not repeat.
-
-        vibrator.vibrate(VibrationEffect.createWaveform(delays, amps, repeatIndex))
+        vibrator.vibrate(VibrationEffect.createWaveform(escalatingDelays, escalatingAmps, repeatIndex))
       }
       "prepare" -> {
         // 
@@ -80,33 +114,12 @@ class HaphapPlugin: FlutterPlugin, MethodCallHandler {
         println(args)
         val power: Double = args["power"]!!
 
-        val durationInMilliSeconds = 3000
-        val timeStep: Long = 50
-        val delta: Double = 1.0 / timeStep.toDouble()
-        val fullCount: Int = (durationInMilliSeconds / timeStep).toInt()
-        var amps = intArrayOf()
-        var delays = longArrayOf()
-        var currentValue: Double = 1.0
-        val targetValue: Double = 0.0
-        for (index in 0..fullCount) {
-          var percentOfRamp: Double = min(1.0,index.toDouble() / fullCount.toDouble())
-          var invertedPercent: Double = 1.0 - percentOfRamp
-          currentValue += (targetValue - currentValue) * delta
-          var x = 0.0 + currentValue * PI * 2 * 4.0
-          var sine = (sin(x) * 0.4 + 0.6) * (1.0 - percentOfRamp)
-          var delay: Long = timeStep// (70.0 * invertedPercent + 25.0).toLong()
-          amps += (sine * 255).toInt()
-          
-          delays += delay
-        }
+        val fullCount: Int = (sineDurationInMilliSeconds / timeStepInMilliSeconds).toInt()
 
         // cut of a portion from the arrays based on power
         val indexToCut: Int = ((1.0 - power) * fullCount.toDouble()).toInt()
-        val newAmps = amps.drop(indexToCut).toIntArray()
-        val newDelays = delays.drop(indexToCut).toLongArray()
-
-        //val timings: LongArray = longArrayOf(50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50, 50)
-        //val amplitudes: IntArray = intArrayOf(255, 51, 220, 80, 170, 255, 0, 38, 62, 100, 70, 38)
+        val newAmps = sineAmps.drop(indexToCut).toIntArray()
+        val newDelays = sineDelays.drop(indexToCut).toLongArray()
         val repeatIndex = -1 // Do not repeat.
 
         vibrator.vibrate(VibrationEffect.createWaveform(newDelays, newAmps, repeatIndex))
