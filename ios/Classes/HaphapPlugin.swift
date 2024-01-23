@@ -6,12 +6,18 @@ import CoreHaptics
 public class HaphapPlugin: NSObject, FlutterPlugin {
 
     var hapticManager = HapticManager()
+    var hasEngine = false
 
     init(hapticManager: HapticManager = HapticManager()) {
         self.hapticManager = hapticManager
 
-        hapticManager.createEngine()
-        hapticManager.addObservers()
+        do {
+            try hapticManager.createEngine()
+            hapticManager.addObservers()
+            hasEngine = true
+        } catch let error {
+            print("[haphap] Engine Creation Error: \(error)")
+        }
     }
 
     public static func register(with registrar: FlutterPluginRegistrar) {
@@ -21,6 +27,11 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+        guard hasEngine else {
+            result(FlutterError.init(code: "no haptics engine", message: nil, details: nil))
+            return
+        }
+
         switch call.method {
         case "getPlatformVersion":
             result("iOS " + UIDevice.current.systemVersion)
@@ -73,8 +84,8 @@ class HapticManager: NSObject {
 
     // A haptic engine manages the connection to the haptic server.
     private var engine: CHHapticEngine!
-    private var rampUpPlayer: CHHapticAdvancedPatternPlayer!
-    private var releasePlayer: CHHapticAdvancedPatternPlayer!
+    private var rampUpPlayer: CHHapticAdvancedPatternPlayer?
+    private var releasePlayer: CHHapticAdvancedPatternPlayer?
 
     // Tokens to track whether app is in the foreground or the background:
     private var foregroundToken: NSObjectProtocol?
@@ -93,22 +104,18 @@ class HapticManager: NSObject {
     private let rampDuration: TimeInterval = 4.0
     private let steadyDuration: TimeInterval = 60.0
 
-    /// - Tag: CreateEngine
-    func createEngine() {
-        guard (engineNeedsStart) else { return }
+    enum HaphapError: Error {
+        case noEngine
+    }
 
-        // Create and configure a haptic engine.
-        do {
-            // Associate the haptic engine with the default audio session
-            // to ensure the correct behavior when playing audio-based haptics.
-            engine = try CHHapticEngine()
-        } catch let error {
-            print("[haphap] Engine Creation Error: \(error)")
-        }
+    /// - Tag: CreateEngine
+    func createEngine() throws {
+        guard engineNeedsStart else { return }
+
+        engine = try CHHapticEngine()
 
         guard let engine = engine else {
-            print("[haphap] Failed to create engine!")
-            return
+            throw HaphapError.noEngine
         }
 
         // Mute audio to reduce latency for collision haptics.
@@ -154,6 +161,7 @@ class HapticManager: NSObject {
     }
 
     func resetAndStart() {
+        guard supportsHaptics else { return }
         print("[haphap] The engine reset --> Restarting now!")
         do {
             // Try restarting the engine.
@@ -171,21 +179,22 @@ class HapticManager: NSObject {
     }
 
     func stopAllPlayers() throws {
-        try rampUpPlayer.stop(atTime: CHHapticTimeImmediate)
-        try releasePlayer.stop(atTime: CHHapticTimeImmediate)
+        try rampUpPlayer?.stop(atTime: CHHapticTimeImmediate)
+        try releasePlayer?.stop(atTime: CHHapticTimeImmediate)
     }
 
     func rampUp() {
+        guard supportsHaptics else { return }
         print("[haphap] try run ramp up")
         if engineNeedsStart { prepare() }
 
         do {
             try stopAllPlayers()
-            rampUpPlayer.isMuted = false
-            releasePlayer.isMuted = true
+            rampUpPlayer?.isMuted = false
+            releasePlayer?.isMuted = true
             DispatchQueue.main.asyncAfter(deadline: DispatchTime.now().advanced(by: DispatchTimeInterval.milliseconds(50)), execute: { [weak self] in
                 do {
-                    try self?.rampUpPlayer.start(atTime: CHHapticTimeImmediate)
+                    try self?.rampUpPlayer?.start(atTime: CHHapticTimeImmediate)
                 } catch {
                     print("[haphap] Failed to start \(#function): \(error)")
                 }
@@ -196,18 +205,19 @@ class HapticManager: NSObject {
     }
 
     func release(power: Double) {
+        guard supportsHaptics else { return }
         print("[haphap] try run release at \(power)")
         if engineNeedsStart { prepare() }
         do {
             try stopAllPlayers()
-            rampUpPlayer.isMuted = true
-            releasePlayer.isMuted = false
+            rampUpPlayer?.isMuted = true
+            releasePlayer?.isMuted = false
 
             DispatchQueue.main.asyncAfter(deadline: DispatchTime.now().advanced(by: DispatchTimeInterval.milliseconds(50)), execute: { [weak self] in
                 do {
                     let offset = (1.0 - power) * (self?.releaseDuration ?? 0.0)
-                    try self?.releasePlayer.seek(toOffset: offset)
-                    try self?.releasePlayer.start(atTime: CHHapticTimeImmediate)
+                    try self?.releasePlayer?.seek(toOffset: offset)
+                    try self?.releasePlayer?.start(atTime: CHHapticTimeImmediate)
                 } catch {
                     print("[haphap] Failed to start \(#function): \(error)")
                 }
@@ -332,9 +342,7 @@ class HapticManager: NSObject {
     func playHapticsData(named data: String) {
 
         // If the device doesn't support Core Haptics, abort.
-        if !supportsHaptics {
-            return
-        }
+        guard supportsHaptics else { return }
 
         do {
             // Start the engine in case it's idle.
