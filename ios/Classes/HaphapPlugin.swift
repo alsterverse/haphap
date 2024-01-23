@@ -5,8 +5,7 @@ import CoreHaptics
 
 public class HaphapPlugin: NSObject, FlutterPlugin {
 
-    var hapticManager = HapticManager()
-    var hasEngine = false
+    private let hapticManager: HapticManager
 
     init(hapticManager: HapticManager = HapticManager()) {
         self.hapticManager = hapticManager
@@ -14,7 +13,6 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
         do {
             try hapticManager.createEngine()
             hapticManager.addObservers()
-            hasEngine = true
         } catch let error {
             print("[haphap] Engine Creation Error: \(error)")
         }
@@ -27,11 +25,6 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
     }
 
     public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
-        guard hasEngine else {
-            result(FlutterError.init(code: "no haptics engine", message: nil, details: nil))
-            return
-        }
-
         switch call.method {
         case "getPlatformVersion":
             result("iOS " + UIDevice.current.systemVersion)
@@ -64,11 +57,9 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
         case "runPattern":
             if let args = call.arguments as? Dictionary<String, Any>,
                let data = args["data"] as? String {
-
                 if (hapticManager.engineNeedsStart) {
                     hapticManager.resetAndStart()
                 }
-
                 hapticManager.playHapticsData(named: data)
             } else {
                 result(FlutterError.init(code: "bad args", message: nil, details: nil))
