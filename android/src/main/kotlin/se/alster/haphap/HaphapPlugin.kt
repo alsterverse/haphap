@@ -107,7 +107,10 @@ class HaphapPlugin: FlutterPlugin, MethodCallHandler {
         vibrator.vibrate(VibrationEffect.createWaveform(escalatingDelays, escalatingAmps, repeatIndex))
       }
       "prepare" -> {
-        // 
+        // Need this or else it acts as unimplemented
+      }
+      "goToIdle" -> {
+        // Need this or else it acts as unimplemented
       }
       "runRelease" -> {
         val args = call.arguments as Map<String, Double>
