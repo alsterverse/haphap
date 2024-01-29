@@ -145,10 +145,11 @@ class HapticManager: NSObject {
     }
 
     func goToIdle() {
+        guard supportsHaptics else { return }
         try? stopAllPlayers()
         engineNeedsStart = true
         manuallyPrepared = false
-        engine.stop()
+        engine?.stop()
     }
 
     func resetAndStart() {
