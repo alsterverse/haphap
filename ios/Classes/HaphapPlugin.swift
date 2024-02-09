@@ -233,8 +233,8 @@ class HapticManager: NSObject {
             currentValue += (targetValue - currentValue) * delta
             // 1.25 is dist*dist*5.0 from ripples.frag. Choosing 0.5 as the distance is the middle of the screen. So the sine is following the point where the user is probably looking
             let x: Float = 0.0 + Float(currentValue * Double.pi * 2 * 4.0)
-            let y: Float = (sin(x) * 0.4 + 0.6) * (1.0 - Float(percent))
-            //print("sineCurve \(y) \t \(currentValue) \t \( 1.0 - Float(percent))")
+            let y: Float = 2 * (sin(x) * 0.5 + 0.5) * Float(currentValue)
+            //print("sineCurve \(y) \t \(currentValue * 2) \t \( 1.0 - Float(percent))")
             controlpoints.append(.init(relativeTime: percent * duration, value: y))
         }
 
@@ -306,7 +306,7 @@ class HapticManager: NSObject {
             rampUpPlayer = try engine.makeAdvancedPlayer(with: pattern)
 
         } catch let error {
-            print("Pattern Player Creation Error: \(error)")
+            print("[haphap] Pattern Player Creation Error: \(error)")
         }
     }
 
