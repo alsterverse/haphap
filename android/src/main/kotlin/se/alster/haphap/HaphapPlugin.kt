@@ -58,7 +58,7 @@ class HaphapPlugin: FlutterPlugin, MethodCallHandler {
       var invertedPercent: Double = 1.0 - percentOfRamp
       currentValue += (targetValue - currentValue) * delta
       var x = 0.0 + currentValue * PI * 2 * 4.0
-      var sine = (sin(x) * 0.4 + 0.6) * (1.0 - percentOfRamp)
+      var sine = 2 * (sin(x) * 0.5 + 0.5) * currentValue
       var delay: Long = timeStepInMilliSeconds.toLong()// (70.0 * invertedPercent + 25.0).toLong()
       amps += (sine * 255).toInt()
 
