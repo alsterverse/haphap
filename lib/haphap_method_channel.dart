@@ -59,12 +59,12 @@ class MethodChannelHaphap extends HaphapPlatform {
 
   @override
   Future<void> updateSettings(
-    double releaseDuration,
+    int releaseDurationInMilliseconds,
     double revolutions,
     bool useExponentialCurve,
   ) async {
     await methodChannel.invokeMethod<void>('updateSettings', {
-      'releaseDuration': releaseDuration,
+      'releaseDurationInMilliseconds': releaseDurationInMilliseconds,
       'revolutions': revolutions,
       'useExponentialCurve': useExponentialCurve,
     });

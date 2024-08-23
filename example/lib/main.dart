@@ -20,7 +20,7 @@ class _MyAppState extends State<MyApp> {
   final _haphapPlugin = Haphap();
   double _releaseValue = 1.0;
 
-  double _releaseDuration = 4.0;
+  double _releaseDurationInSeconds = 4.0;
   double _revolutions = 4.0;
   bool _useExponentialCurve = false;
 
@@ -116,7 +116,8 @@ class _MyAppState extends State<MyApp> {
             TextButton(
               onPressed: () async {
                 _haphapPlugin.updateWaveHapticPatternSettings(
-                  durationInSeconds: _releaseDuration,
+                  durationInSeconds: Duration(
+                      milliseconds: (_releaseDurationInSeconds * 1000).toInt()),
                   waves: _revolutions,
                   useExponentialCurve: _useExponentialCurve,
                 );
@@ -124,17 +125,17 @@ class _MyAppState extends State<MyApp> {
               child: const Text('Update settings'),
             ),
             const ListTile(
-              title: Text('Release duration'),
+              title: Text('Release duration in seconds'),
             ),
             Slider(
-                value: _releaseDuration,
-                label: _releaseDuration.toString(),
-                divisions: 10,
-                max: 10.0,
+                value: _releaseDurationInSeconds,
+                label: _releaseDurationInSeconds.toString(),
+                divisions: 12,
+                max: 6.0,
                 onChanged: (value) {
                   setState(
                     () {
-                      _releaseDuration = value;
+                      _releaseDurationInSeconds = value;
                     },
                   );
                 }),

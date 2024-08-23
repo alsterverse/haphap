@@ -137,11 +137,11 @@ class HaphapPlugin: FlutterPlugin, MethodCallHandler {
       "updateSettings" -> {
         val args = call.arguments as Map<String, String>
         println(args)
-        val releaseDuration: Double = args["releaseDuration"]!!.toDouble()
+        val releaseDuration: Double = args["releaseDurationInMilliseconds"]!!.toInt()
         val revolutions: Double = args["revolutions"]!!.toDouble()
         val useExponentialCurve: Boolean = args["useExponentialCurve"]!!.toBoolean()
 
-        this.releaseDurationInMilliSeconds = (releaseDuration * 1000).toInt()
+        this.releaseDurationInMilliSeconds = releaseDuration
         this.revolutions = revolutions
         this.useExponentialCurve = useExponentialCurve
 

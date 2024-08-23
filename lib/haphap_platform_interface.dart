@@ -54,7 +54,7 @@ abstract class HaphapPlatform extends PlatformInterface {
   }
 
   Future<void> updateSettings(
-    double releaseDuration,
+    int releaseDurationInMilliseconds,
     double revolutions,
     bool useExponentialCurve,
   ) {

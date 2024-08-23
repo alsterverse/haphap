@@ -45,12 +45,12 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
             break
         case "updateSettings":
             if let args = call.arguments as? Dictionary<String, Any>,
-               let releaseDuration = args["releaseDuration"] as? TimeInterval,
+               let releaseDuration = args["releaseDurationInMilliseconds"] as? Double,
                let revolutions = args["revolutions"] as? Double,
                let useExponentialCurve = args["useExponentialCurve"] as? Bool
             {
                 hapticManager.updateSettings(
-                    releaseDuration: releaseDuration,
+                    releaseDuration: releaseDuration / 1000.0,
                     revolutions: revolutions,
                     useExponentialCurve: useExponentialCurve
                 )

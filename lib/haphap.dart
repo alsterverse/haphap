@@ -31,12 +31,12 @@ class Haphap {
   }
 
   Future<void> updateWaveHapticPatternSettings({
-    double durationInSeconds = 4.0,
+    Duration durationInSeconds = const Duration(seconds: 4),
     double waves = 4.0,
     bool useExponentialCurve = false,
   }) {
     return HaphapPlatform.instance.updateSettings(
-      durationInSeconds,
+      durationInSeconds.inMilliseconds,
       waves,
       useExponentialCurve,
     );
