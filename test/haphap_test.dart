@@ -29,7 +29,9 @@ class MockHaphapPlatform
   }
 
   @override
-  Future<void> runRelease(double power) {
+  Future<void> runRelease(
+    double power,
+  ) {
     // TODO: implement runRelease
     throw UnimplementedError();
   }
@@ -49,6 +51,16 @@ class MockHaphapPlatform
   @override
   Future<void> goToIdle() {
     // TODO: implement goToIdle
+    throw UnimplementedError();
+  }
+
+  @override
+  Future<void> updateSettings(
+    double releaseDuration,
+    double revolutions,
+    bool useExponentialCurve,
+  ) {
+    // TODO: implement updateSettings
     throw UnimplementedError();
   }
 }

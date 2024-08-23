@@ -18,6 +18,11 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   String _platformVersion = 'Unknown';
   final _haphapPlugin = Haphap();
+  double _releaseValue = 1.0;
+
+  double _releaseDuration = 4.0;
+  double _revolutions = 4.0;
+  bool _useExponentialCurve = false;
 
   @override
   void initState() {
@@ -73,39 +78,91 @@ class _MyAppState extends State<MyApp> {
             ),
             TextButton(
               onPressed: () async {
+                _haphapPlugin.stop();
+              },
+              child: const Text('Stop'),
+            ),
+            TextButton(
+              onPressed: () async {
                 _haphapPlugin.playEscalatingHapticPattern();
               },
               child: const Text('Ramp'),
             ),
             TextButton(
               onPressed: () async {
-                _haphapPlugin.playDynamicWaveHapticPattern(0.25);
+                _haphapPlugin.playWaveHapticPattern(
+                  power: _releaseValue,
+                );
               },
-              child: const Text('Release 0.25'),
+              child: Text('Release at $_releaseValue'),
+            ),
+            const ListTile(
+              title: Text('Release point'),
+            ),
+            Slider(
+                value: _releaseValue,
+                label: _releaseValue.toString(),
+                divisions: 10,
+                onChanged: (value) {
+                  setState(
+                    () {
+                      _releaseValue = value;
+                    },
+                  );
+                }),
+            const ListTile(
+              title: Text('Settings'),
             ),
             TextButton(
               onPressed: () async {
-                _haphapPlugin.playDynamicWaveHapticPattern(0.5);
+                _haphapPlugin.updateWaveHapticPatternSettings(
+                  durationInSeconds: _releaseDuration,
+                  waves: _revolutions,
+                  useExponentialCurve: _useExponentialCurve,
+                );
               },
-              child: const Text('Release 0.5'),
+              child: const Text('Update settings'),
             ),
-            TextButton(
-              onPressed: () async {
-                _haphapPlugin.playDynamicWaveHapticPattern(0.75);
-              },
-              child: const Text('Release 0.75'),
+            const ListTile(
+              title: Text('Release duration'),
             ),
-            TextButton(
-              onPressed: () async {
-                _haphapPlugin.playDynamicWaveHapticPattern(1.0);
-              },
-              child: const Text('Release 1.0'),
+            Slider(
+                value: _releaseDuration,
+                label: _releaseDuration.toString(),
+                divisions: 10,
+                max: 10.0,
+                onChanged: (value) {
+                  setState(
+                    () {
+                      _releaseDuration = value;
+                    },
+                  );
+                }),
+            const ListTile(
+              title: Text('Revolutions'),
             ),
-            TextButton(
-              onPressed: () async {
-                _haphapPlugin.stop();
+            Slider(
+                value: _revolutions,
+                label: _revolutions.toString(),
+                divisions: 10,
+                max: 10.0,
+                onChanged: (value) {
+                  setState(
+                    () {
+                      _revolutions = value;
+                    },
+                  );
+                }),
+            SwitchListTile(
+              title: const Text('Use exponential curve'),
+              value: _useExponentialCurve,
+              onChanged: (value) {
+                setState(
+                  () {
+                    _useExponentialCurve = value;
+                  },
+                );
               },
-              child: const Text('Stop'),
             ),
           ],
         ),

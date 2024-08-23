@@ -49,9 +49,24 @@ class MethodChannelHaphap extends HaphapPlatform {
   }
 
   @override
-  Future<void> runRelease(double power) async {
+  Future<void> runRelease(
+    double power,
+  ) async {
     await methodChannel.invokeMethod<void>('runRelease', {
       'power': power,
+    });
+  }
+
+  @override
+  Future<void> updateSettings(
+    double releaseDuration,
+    double revolutions,
+    bool useExponentialCurve,
+  ) async {
+    await methodChannel.invokeMethod<void>('updateSettings', {
+      'releaseDuration': releaseDuration,
+      'revolutions': revolutions,
+      'useExponentialCurve': useExponentialCurve,
     });
   }
 }

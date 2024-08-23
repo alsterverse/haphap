@@ -47,8 +47,18 @@ abstract class HaphapPlatform extends PlatformInterface {
     throw UnimplementedError('runContinuous() has not been implemented.');
   }
 
-  Future<void> runRelease(double power) {
+  Future<void> runRelease(
+    double power,
+  ) {
     throw UnimplementedError('runRelease(power) has not been implemented.');
+  }
+
+  Future<void> updateSettings(
+    double releaseDuration,
+    double revolutions,
+    bool useExponentialCurve,
+  ) {
+    throw UnimplementedError('updateSettings() has not been implemented.');
   }
 
   Future<void> runPattern(String data) {

@@ -43,6 +43,21 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
             }
             hapticManager.rampUp()
             break
+        case "updateSettings":
+            if let args = call.arguments as? Dictionary<String, Any>,
+               let releaseDuration = args["releaseDuration"] as? TimeInterval,
+               let revolutions = args["revolutions"] as? Double,
+               let useExponentialCurve = args["useExponentialCurve"] as? Bool
+            {
+                hapticManager.updateSettings(
+                    releaseDuration: releaseDuration,
+                    revolutions: revolutions,
+                    useExponentialCurve: useExponentialCurve
+                )
+            } else {
+                result(FlutterError.init(code: "bad args", message: nil, details: nil))
+            }
+            break
         case "runRelease":
             if let args = call.arguments as? Dictionary<String, Any>,
                let power = args["power"] as? Double {
@@ -82,6 +97,8 @@ class HapticManager: NSObject {
     private var foregroundToken: NSObjectProtocol?
     private var backgroundToken: NSObjectProtocol?
 
+    private var hapticDispatchWorkItem: DispatchWorkItem?
+
     var engineNeedsStart = true
     var manuallyPrepared = false
 
@@ -91,9 +108,11 @@ class HapticManager: NSObject {
         return hapticCapability.supportsHaptics
     }()
 
-    private let releaseDuration: TimeInterval = 4.0
+    private var releaseDuration: TimeInterval = 4.0
+    private var revolutions: Double = 4.0
+    private var useExponentialCurve: Bool = false
     private let rampDuration: TimeInterval = 4.0
-    private let steadyDuration: TimeInterval = 60.0
+    private let steadyDuration: TimeInterval = 30.0
 
     enum HaphapError: Error {
         case noEngine
@@ -139,6 +158,17 @@ class HapticManager: NSObject {
         engine.resetHandler = resetAndStart
     }
 
+    func updateSettings(
+        releaseDuration: TimeInterval,
+        revolutions: Double,
+        useExponentialCurve: Bool
+    ) {
+        self.releaseDuration = releaseDuration
+        self.revolutions = revolutions
+        self.useExponentialCurve = useExponentialCurve
+        engineNeedsStart = true
+    }
+
     func prepare() {
         manuallyPrepared = true
         resetAndStart()
@@ -171,6 +201,7 @@ class HapticManager: NSObject {
     }
 
     func stopAllPlayers() throws {
+        hapticDispatchWorkItem?.cancel()
         try rampUpPlayer?.stop(atTime: CHHapticTimeImmediate)
         try releasePlayer?.stop(atTime: CHHapticTimeImmediate)
     }
@@ -184,13 +215,20 @@ class HapticManager: NSObject {
             try stopAllPlayers()
             rampUpPlayer?.isMuted = false
             releasePlayer?.isMuted = true
-            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now().advanced(by: DispatchTimeInterval.milliseconds(50)), execute: { [weak self] in
+
+            hapticDispatchWorkItem?.cancel()
+            hapticDispatchWorkItem = DispatchWorkItem(block: { [weak self] in
                 do {
                     try self?.rampUpPlayer?.start(atTime: CHHapticTimeImmediate)
                 } catch {
                     print("[haphap] Failed to start \(#function): \(error)")
                 }
             })
+
+            DispatchQueue.main.asyncAfter(
+                deadline: DispatchTime.now().advanced(by: DispatchTimeInterval.milliseconds(50)),
+                execute: hapticDispatchWorkItem!
+            )
         } catch {
             print("[haphap] Failed to stop \(#function): \(error)")
         }
@@ -205,7 +243,8 @@ class HapticManager: NSObject {
             rampUpPlayer?.isMuted = true
             releasePlayer?.isMuted = false
 
-            DispatchQueue.main.asyncAfter(deadline: DispatchTime.now().advanced(by: DispatchTimeInterval.milliseconds(50)), execute: { [weak self] in
+            hapticDispatchWorkItem?.cancel()
+            hapticDispatchWorkItem = DispatchWorkItem(block: { [weak self] in
                 do {
                     let offset = (1.0 - power) * (self?.releaseDuration ?? 0.0)
                     try self?.releasePlayer?.seek(toOffset: offset)
@@ -215,27 +254,31 @@ class HapticManager: NSObject {
                 }
             })
 
+            DispatchQueue.main.asyncAfter(
+                deadline: DispatchTime.now().advanced(by: DispatchTimeInterval.milliseconds(50)),
+                execute: hapticDispatchWorkItem!
+            )
         } catch {
             print("[haphap] Failed to \(#function): \(error)")
         }
     }
 
-    private func createSineCurveControlPoints(duration: TimeInterval) -> [CHHapticParameterCurve.ControlPoint] {
+    private func createReleaseCurveControlPoints(duration: TimeInterval, revolutions: Double) -> [CHHapticParameterCurve.ControlPoint] {
         var controlpoints = [CHHapticParameterCurve.ControlPoint]()
 
         let pointsPerSecond = 6.0
         let pointCount: Int = Int(pointsPerSecond * duration)
         let delta: Double = 1 / pointsPerSecond
-        var currentValue: Double = 1.0
-        let targetValue: Double = 0.0
+        var currentValue: Double = 0.0
+        let targetValue: Double = 1.0
         (0...pointCount - 1).enumerated().forEach { index, _ in
             let percent: Double = Double(index) / Double(pointCount)
             currentValue += (targetValue - currentValue) * delta
-            // 1.25 is dist*dist*5.0 from ripples.frag. Choosing 0.5 as the distance is the middle of the screen. So the sine is following the point where the user is probably looking
-            let x: Float = 0.0 + Float(currentValue * Double.pi * 2 * 4.0)
-            let y: Float = 2 * (sin(x) * 0.5 + 0.5) * Float(currentValue)
-            //print("sineCurve \(y) \t \(currentValue * 2) \t \( 1.0 - Float(percent))")
-            controlpoints.append(.init(relativeTime: percent * duration, value: y))
+            let x: Float = Float((useExponentialCurve ? currentValue : percent) * Double.pi * 2 * revolutions)
+            let y: Float = cos(x) * 0.5 + 0.5
+            let falloffY: Float = y * Float(1 - percent)
+            // print("cosCurve \(String(format: "%.3f", y)) \t\t falloff \(falloffY) \t \(currentValue) \t \(Float(percent))")
+            controlpoints.append(.init(relativeTime: percent * duration, value: falloffY))
         }
 
         return controlpoints
@@ -283,18 +326,22 @@ class HapticManager: NSObject {
                                                value: initialSharpness)
 
         // Create a continuous event with a long duration from the parameters.
-        let continuousRampEvent = CHHapticEvent(eventType: .hapticContinuous,
-                                            parameters: [intensity, sharpness],
-                                            relativeTime: 0,
-                                            duration: rampDuration)
+        let continuousRampEvent = CHHapticEvent(
+            eventType: .hapticContinuous,
+            parameters: [intensity, sharpness],
+            relativeTime: 0,
+            duration: rampDuration
+        )
 
 
         events.append(continuousRampEvent)
 
-        let continuousEvent = CHHapticEvent(eventType: .hapticContinuous,
-                                            parameters: [intensity, sharpness],
-                                            relativeTime: rampDuration,
-                                            duration: steadyDuration)
+        let continuousEvent = CHHapticEvent(
+            eventType: .hapticContinuous,
+            parameters: [intensity, sharpness],
+            relativeTime: rampDuration,
+            duration: steadyDuration
+        )
 
         events.append(continuousEvent)
 
@@ -320,7 +367,11 @@ class HapticManager: NSObject {
                                             duration: releaseDuration)
 
         do {
-            let sineCurve = CHHapticParameterCurve.init(parameterID: .hapticIntensityControl, controlPoints: createSineCurveControlPoints(duration: releaseDuration), relativeTime: 0.0)
+            let sineCurve = CHHapticParameterCurve.init(
+                parameterID: .hapticIntensityControl,
+                controlPoints: createReleaseCurveControlPoints(duration: releaseDuration, revolutions: revolutions),
+                relativeTime: 0.0
+            )
 
             let pattern = try CHHapticPattern(events: [sharpHit, continuousEvent], parameterCurves: [sineCurve])
 
@@ -384,5 +435,4 @@ class HapticManager: NSObject {
             })
         }
     }
-
 }
