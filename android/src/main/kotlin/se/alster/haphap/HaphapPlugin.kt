@@ -135,11 +135,11 @@ class HaphapPlugin: FlutterPlugin, MethodCallHandler {
         vibrator.vibrate(VibrationEffect.createWaveform(newDelays, newAmps, repeatIndex))
       }
       "updateSettings" -> {
-        val args = call.arguments as Map<String, String>
+        val args = call.arguments as Map<String, Any>
         println(args)
-        val releaseDuration: Double = args["releaseDurationInMilliseconds"]!!.toInt()
-        val revolutions: Double = args["revolutions"]!!.toDouble()
-        val useExponentialCurve: Boolean = args["useExponentialCurve"]!!.toBoolean()
+        val releaseDuration: Int = call.argument("releaseDurationInMilliseconds")!!
+        val revolutions: Double = call.argument("revolutions")!!
+        val useExponentialCurve: Boolean = call.argument("useExponentialCurve")!!
 
         this.releaseDurationInMilliSeconds = releaseDuration
         this.revolutions = revolutions
