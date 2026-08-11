@@ -236,8 +236,23 @@ class HapticManager: NSObject {
 
     func stopAllPlayers() throws {
         hapticDispatchWorkItem?.cancel()
-        try rampUpPlayer?.stop(atTime: CHHapticTimeImmediate)
-        try releasePlayer?.stop(atTime: CHHapticTimeImmediate)
+
+        // Nothing can be playing on an engine that isn't running, and asking a
+        // player to stop there just fails with -4805. Callers stop far more
+        // often than they play — every horizontal page change in a feed, say —
+        // so without this the console fills with errors for no-op work.
+        guard !engineNeedsStart else { return }
+
+        do {
+            try rampUpPlayer?.stop(atTime: CHHapticTimeImmediate)
+            try releasePlayer?.stop(atTime: CHHapticTimeImmediate)
+        } catch {
+            // The engine went down without us hearing about it. Take the
+            // failure as the evidence and let the next haptic restart it,
+            // so this self-corrects even if stoppedHandler never fires.
+            engineNeedsStart = true
+            throw error
+        }
     }
 
     func rampUp() {
