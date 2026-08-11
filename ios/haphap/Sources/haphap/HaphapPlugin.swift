@@ -38,9 +38,6 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
             hapticManager.goToIdle()
             break
         case "runRampUp":
-            if (hapticManager.engineNeedsStart) {
-                hapticManager.resetAndStart()
-            }
             hapticManager.rampUp()
             break
         case "updateSettings":
@@ -61,9 +58,6 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
         case "runRelease":
             if let args = call.arguments as? Dictionary<String, Any>,
                let power = args["power"] as? Double {
-                if (hapticManager.engineNeedsStart) {
-                    hapticManager.resetAndStart()
-                }
                 hapticManager.release(power: power)
             } else {
                 result(FlutterError.init(code: "bad args", message: nil, details: nil))
@@ -72,9 +66,6 @@ public class HaphapPlugin: NSObject, FlutterPlugin {
         case "runPattern":
             if let args = call.arguments as? Dictionary<String, Any>,
                let data = args["data"] as? String {
-                if (hapticManager.engineNeedsStart) {
-                    hapticManager.resetAndStart()
-                }
                 hapticManager.playHapticsData(named: data)
             } else {
                 result(FlutterError.init(code: "bad args", message: nil, details: nil))
@@ -98,6 +89,10 @@ class HapticManager: NSObject {
     private var backgroundToken: NSObjectProtocol?
 
     private var hapticDispatchWorkItem: DispatchWorkItem?
+
+    // Haptics waiting on an in-flight engine start, replayed once it lands.
+    private var pendingPlaybacks: [() -> Void] = []
+    private var isStarting = false
 
     var engineNeedsStart = true
     var manuallyPrepared = false
@@ -132,8 +127,13 @@ class HapticManager: NSObject {
         engine.playsHapticsOnly = true
 
         // The stopped handler alerts you of engine stoppage due to external causes.
-        engine.stoppedHandler = { reason in
+        engine.stoppedHandler = { [weak self] reason in
             print("[haphap] The engine stopped for reason: \(reason.rawValue)")
+            // Whatever the reason, the engine is no longer running. Without
+            // this the next haptic skips the restart, calls into a dead engine
+            // and fails with -4805 — and keeps failing, because nothing else
+            // raises the flag until the app backgrounds.
+            DispatchQueue.main.async { self?.engineNeedsStart = true }
             switch reason {
             case .audioSessionInterrupt:
                 print("[haphap] Audio session interrupt")
@@ -155,7 +155,7 @@ class HapticManager: NSObject {
         }
 
         // The reset handler provides an opportunity for your app to restart the engine in case of failure.
-        engine.resetHandler = resetAndStart
+        engine.resetHandler = { [weak self] in self?.resetAndStart() }
     }
 
     func updateSettings(
@@ -169,9 +169,9 @@ class HapticManager: NSObject {
         engineNeedsStart = true
     }
 
-    func prepare() {
+    func prepare(then play: (() -> Void)? = nil) {
         manuallyPrepared = true
-        resetAndStart()
+        resetAndStart(then: play)
     }
 
     func goToIdle() {
@@ -179,38 +179,96 @@ class HapticManager: NSObject {
         try? stopAllPlayers()
         engineNeedsStart = true
         manuallyPrepared = false
-        engine?.stop()
+        engine?.stop(completionHandler: { error in
+            if let error = error {
+                print("[haphap] Haptic Engine Shutdown Error: \(error)")
+            }
+        })
     }
 
-    func resetAndStart() {
-        guard supportsHaptics else { return }
-        print("[haphap] The engine reset --> Restarting now!")
-        do {
-            // Try restarting the engine.
-            try engine.start()
-
-            // Indicate that the next time the app requires a haptic, the app doesn't need to call engine.start().
-            engineNeedsStart = false
-
-            // Recreate the players.
-            createRampUpHapticPlayer()
-            createReleaseHapticPlayer()
-        } catch {
-            print("[haphap] Failed to restart the engine: \(error)")
+    /// Starts the engine and runs `play` once the players exist.
+    ///
+    /// Starting connects to the haptic server, which takes long enough to be a
+    /// visible hang on the main thread — and the main thread is where every
+    /// method channel call lands. So this starts asynchronously and hands the
+    /// caller a continuation rather than making it wait. State is mutated back
+    /// on the main queue, where the rest of this class reads it.
+    func resetAndStart(then play: (() -> Void)? = nil) {
+        guard supportsHaptics, let engine = engine else {
+            print("[haphap] No engine to start")
+            return
         }
+
+        if let play = play {
+            pendingPlaybacks.append(play)
+        }
+
+        // A second haptic arriving mid-start joins the one already running
+        // instead of kicking off a competing start.
+        guard !isStarting else { return }
+        isStarting = true
+
+        print("[haphap] The engine reset --> Restarting now!")
+        engine.start(completionHandler: { [weak self] error in
+            DispatchQueue.main.async {
+                guard let self = self else { return }
+                self.isStarting = false
+
+                let playbacks = self.pendingPlaybacks
+                self.pendingPlaybacks.removeAll()
+
+                if let error = error {
+                    print("[haphap] Failed to restart the engine: \(error)")
+                    return
+                }
+
+                // Indicate that the next time the app requires a haptic, the app doesn't need to call engine.start().
+                self.engineNeedsStart = false
+
+                // Recreate the players.
+                self.createRampUpHapticPlayer()
+                self.createReleaseHapticPlayer()
+
+                playbacks.forEach { $0() }
+            }
+        })
     }
 
     func stopAllPlayers() throws {
         hapticDispatchWorkItem?.cancel()
-        try rampUpPlayer?.stop(atTime: CHHapticTimeImmediate)
-        try releasePlayer?.stop(atTime: CHHapticTimeImmediate)
+
+        // Nothing can be playing on an engine that isn't running, and asking a
+        // player to stop there just fails with -4805. Callers stop far more
+        // often than they play — every horizontal page change in a feed, say —
+        // so without this the console fills with errors for no-op work.
+        guard !engineNeedsStart else { return }
+
+        do {
+            try rampUpPlayer?.stop(atTime: CHHapticTimeImmediate)
+            try releasePlayer?.stop(atTime: CHHapticTimeImmediate)
+        } catch {
+            // The engine went down without us hearing about it. Take the
+            // failure as the evidence and let the next haptic restart it,
+            // so this self-corrects even if stoppedHandler never fires.
+            engineNeedsStart = true
+            throw error
+        }
     }
 
     func rampUp() {
         guard supportsHaptics else { return }
         print("[haphap] try run ramp up")
-        if engineNeedsStart { prepare() }
+        // The players only exist once the engine is running, so a cold engine
+        // has to play from the start's continuation rather than straight
+        // through — see resetAndStart(then:).
+        if engineNeedsStart {
+            prepare { [weak self] in self?.playRampUp() }
+            return
+        }
+        playRampUp()
+    }
 
+    private func playRampUp() {
         do {
             try stopAllPlayers()
             rampUpPlayer?.isMuted = false
@@ -237,7 +295,14 @@ class HapticManager: NSObject {
     func release(power: Double) {
         guard supportsHaptics else { return }
         print("[haphap] try run release at \(power)")
-        if engineNeedsStart { prepare() }
+        if engineNeedsStart {
+            prepare { [weak self] in self?.playRelease(power: power) }
+            return
+        }
+        playRelease(power: power)
+    }
+
+    private func playRelease(power: Double) {
         do {
             try stopAllPlayers()
             rampUpPlayer?.isMuted = true
@@ -387,17 +452,20 @@ class HapticManager: NSObject {
         // If the device doesn't support Core Haptics, abort.
         guard supportsHaptics else { return }
 
-        do {
-            // Start the engine in case it's idle.
-            if (engineNeedsStart) {
-                resetAndStart()
-            }
+        // Start the engine in case it's idle.
+        if engineNeedsStart {
+            resetAndStart { [weak self] in self?.playPattern(named: data) }
+            return
+        }
+        playPattern(named: data)
+    }
 
+    private func playPattern(named data: String) {
+        do {
             // Tell the engine to play a pattern.
             try engine.playPattern(from: Data(data.utf8))
-
-        } catch { // Engine startup errors
-            print("An error occured playing \(data): \(error).")
+        } catch {
+            print("[haphap] An error occured playing \(data): \(error).")
         }
     }
 
